@@ -1,0 +1,179 @@
+---
+title: "BiostatsProject"
+author: "Lee Kendall"
+date: "11/1/2020"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+````{r mainWork, message=FALSE}
+library(tidyverse)
+
+library(readr)
+owid_covid_data <- read_csv("owid-covid-data.csv", 
+     col_types = cols(date = col_date(format = "%Y-%m-%d"), 
+         total_cases = col_double(), total_deaths = col_double(), 
+         total_cases_per_million = col_double(), 
+         total_deaths_per_million = col_double(), 
+         icu_patients = col_double(), icu_patients_per_million = col_double(), 
+         hosp_patients = col_double(), hosp_patients_per_million = col_double(), 
+         weekly_icu_admissions = col_double(), 
+         weekly_icu_admissions_per_million = col_double(), 
+         weekly_hosp_admissions = col_double(), 
+         weekly_hosp_admissions_per_million = col_double(), 
+         total_tests = col_double(), new_tests = col_double(), 
+         total_tests_per_thousand = col_double(), 
+         new_tests_per_thousand = col_double(), 
+         new_tests_smoothed = col_double(), 
+         new_tests_smoothed_per_thousand = col_double(), 
+         tests_per_case = col_double(), positive_rate = col_double(), 
+         tests_units = col_character(), extreme_poverty = col_double(), 
+         female_smokers = col_double(), male_smokers = col_double()))
+
+covid_data_selected_countries <- owid_covid_data %>% filter(location == "Italy" | location == "Germany"
+                                                            | location == "Spain" | location == "France"
+                                                            | location == "United States"
+                                                            | location == "United Kingdom",
+                                                            date >= "2020-01-22" & date <= "2020-03-23")%>% select("location","date","total_cases","total_cases_per_million")
+
+covid_data_selected_countries[is.na(covid_data_selected_countries)] = 0
+
+require(scales)
+covid_data_selected_countries %>% ggplot() + aes(date,total_cases) + aes(color=location) + geom_point() + geom_line() + ggtitle("Total COVID cases by country") + theme(plot.title = element_text(hjust = 0.5)) + scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)))
+
+covid_data_selected_countries %>% ggplot() + aes(date,total_cases_per_million) + aes(color=location) + geom_point() + geom_line() + ggtitle("Total COVID cases by country") + theme(plot.title = element_text(hjust = 0.5)) + scale_y_log10(breaks = trans_breaks("log10", function(x) 10^x), labels = trans_format("log10", math_format(10^.x)))
+
+````
+
+````{r mainwork2}
+
+covid_relavent_timeframe <- owid_covid_data %>% filter(location == "United States", total_cases_per_million >= 1) %>% select("location","date","total_cases_per_million")
+first_date <- covid_relavent_timeframe$date[1]
+
+covid_relavent_timeframe <- covid_relavent_timeframe %>% filter(date <= "2020-03-28")  %>%  mutate(time = as.numeric(date - as.Date(first_date))+1)
+
+exponential_model <- lm(log(covid_relavent_timeframe$total_cases_per_million) ~ covid_relavent_timeframe$time)
+summary(exponential_model)
+anova(exponential_model)
+
+num_days <- nrow(covid_relavent_timeframe)
+fit_error_exp <- (1/num_days)* sqrt(anova(exponential_model)["Residuals", "Sum Sq"])
+
+power_model <- lm(log(covid_relavent_timeframe$total_cases_per_million) ~ log(covid_relavent_timeframe$time))
+summary(power_model)
+anova(power_model)
+
+fit_error_pow <- (1/num_days)* sqrt(anova(power_model)["Residuals", "Sum Sq"])
+
+
+
+fit_exp_and_pow <- function(country){
+  covid_relavent_timeframe <- owid_covid_data %>% filter(location == country, total_cases_per_million >= 1) %>%
+    select("location","date","total_cases_per_million")
+  
+  first_date <- covid_relavent_timeframe$date[1]
+  
+  covid_relavent_timeframe <- covid_relavent_timeframe %>% filter(date <= "2020-03-28")  %>%  mutate(time = as.numeric(date - as.Date(first_date))+1)
+  
+  num_days <- nrow(covid_relavent_timeframe)
+  exponential_model <- lm(log(covid_relavent_timeframe$total_cases_per_million) ~ covid_relavent_timeframe$time)
+  power_model <- lm(log(covid_relavent_timeframe$total_cases_per_million) ~ log(covid_relavent_timeframe$time))
+  
+  fit_error_exp <- (1/num_days)* sqrt(anova(exponential_model)["Residuals", "Sum Sq"])
+  fit_error_pow <- (1/num_days)* sqrt(anova(power_model)["Residuals", "Sum Sq"])
+
+  if (fit_error_exp > fit_error_pow){
+    better_model <- "Power Law"
+  }
+  else{#fit_error_pow >= fit_error_exp, ties unlikely and unimportant
+    better_model <- "Exponential"
+  }
+  
+  return(c(country, fit_error_exp, fit_error_pow, better_model))
+}
+
+
+fit_exp_and_pow("United States")
+
+model_fits <- tibble(
+  country = NA,
+  Exponential_fitting_error = NA,
+  Power_law_fitting_error = NA,
+  Better_model = NA
+)
+
+#model_fits <- rbind(model_fits, c("United States", "0.0207837420349715", "0.147364312269496", "Exponential"))
+#model_fits <- na.omit(model_fits)
+
+
+countries <- c("Australia", "Canada", "Croatia", "Israel", "New Zealand", "Macedonia", "Oman", "United Arab Emirates", "United States", "Austria", "Dominican Republic", "Ecuador", "Ireland", "Lithuania","Malaysia", "Portugal", "South Africa", "United Kingdom", "Albania", "Armenia", "Belgium", "Cyprus", "Denmark", "Georgia", "Iran", "Italy", "Jordan", "Mauritius", "Moldova", "Netherlands", "Norway", "Qatar", "Slovakia", "Sweden", "Turkey", "Uruguay", "Bahrain", "Bosnia and Herzegovina", "Bulgaria", "Chile", "Costa Rica", "Czech Republic", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Kuwait", "Latvia", "Lebanon", "Panama", "Poland", "Romania", "Saudi Arabia", "Serbia", "Singapore", "Spain", "Switzerland", "Trinidad and Tobago")
+
+
+for (country in countries){
+  model_fits <- rbind(model_fits, fit_exp_and_pow(country))
+}
+model_fits <- na.omit(model_fits)
+
+
+fit_exp_and_pow_R_Squared <- function(country){
+  covid_relavent_timeframe <- owid_covid_data %>% filter(location == country, total_cases_per_million >= 1) %>%
+    select("location","date","total_cases_per_million")
+  
+  first_date <- covid_relavent_timeframe$date[1]
+  
+  covid_relavent_timeframe <- covid_relavent_timeframe %>% filter(date <= "2020-03-28")  %>%  mutate(time = as.numeric(date - as.Date(first_date))+1)
+  
+  num_days <- nrow(covid_relavent_timeframe)
+  exponential_model <- lm(log(covid_relavent_timeframe$total_cases_per_million) ~ covid_relavent_timeframe$time)
+  power_model <- lm(log(covid_relavent_timeframe$total_cases_per_million) ~ log(covid_relavent_timeframe$time))
+  
+  r_squared_exp <- summary(exponential_model)$r.squared
+  r_squared_pow <- summary(power_model)$r.squared
+
+  if (r_squared_exp > r_squared_pow){
+    better_model <- "Exponential"
+  }
+  else{#r_squared_exp <= r_squared_pow, ties unlikely and unimportant
+    better_model <- "Power law"
+  }
+  
+  return(c(country, r_squared_exp, r_squared_pow, better_model))
+}
+
+
+model_fits_Rsquared <- tibble(
+  country = NA,
+  Exponential_R_Squared = NA,
+  Power_law_R_Squared = NA,
+  Better_model = NA
+)
+
+for (country in countries){
+  model_fits_Rsquared <- rbind(model_fits_Rsquared, fit_exp_and_pow_R_Squared(country))
+}
+model_fits_Rsquared <- na.omit(model_fits_Rsquared)
+
+fit_all_pow <- function(country){
+  covid_relavent_timeframe <- owid_covid_data %>% filter(location == country, total_cases_per_million >= 1) %>% select("location","date","total_cases_per_million")
+  
+  first_date <- covid_relavent_timeframe$date[1]
+  
+  covid_relavent_timeframe <- covid_relavent_timeframe %>% filter(date <= "2020-03-28")  %>%  mutate(time = as.numeric(date - as.Date(first_date))+1)
+  
+  num_days <- nrow(covid_relavent_timeframe)
+  fitting_erors <- c()
+  for (i in 1:50){
+    covid_relavent_timeframe <- slice_tail(covid_relavent_timeframe,n=(num_days - i))
+    power_model <- lm(log(covid_relavent_timeframe$total_cases_per_million) ~ covid_relavent_timeframe$time)
+    fit_error_pow <- (1/(num_days-i))* sqrt(anova(power_model)["Residuals", "Sum Sq"])
+    fitting_erors <- append(fitting_erors,fit_error_pow)
+    print(fitting_erors)
+  }
+  return(fitting_erors)
+}
+
+usa_pow_errors <- fit_all_pow("United States")
+
+````
