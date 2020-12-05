@@ -1,0 +1,105 @@
+---
+title: "COVID_Dataset"
+author: "Kyra Groover"
+date: "11/9/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r COVID}
+library(tidyverse)
+library(readxl)
+
+COVID_df <- tibble(read_excel("covid_df.xlsx"))
+
+covid_df_selected <- COVID_df %>% select(location,date, total_cases,total_cases_per_million,median_age, diabetes_prevalence,handwashing_facilities,cardiovasc_death_rate,gdp_per_capita,total_deaths)
+
+covid_df_selected <- covid_df_selected %>% subset(c(location == "Albania"|location == "Andorra"| location == "Antigua and Barbuda"|location == "Armenia"| location == "Australia" | location == "Austria" | location =="Bahamas"|location == "Bahrain"|location == "Barbados"| location == "Belgium"| location == "Bosnia and Herzegovina"| location == "Brunei"| location == "Bulgaria"| location == "Canada"| location == "Chile"| location == "Costa Rica"| location == "Croatia"| location == "Cyprus"| location =="Czech Republic"| location== "Denmark"| location == "Dominican Republic"| location == "Ecuador"| location == "Estonia"| location == "Finland"| location == "France"|location == "Georgia"|location == "Germany"|location == "Greece"|location == "Guyana"|location == "Holy See"|location == "Hungary"|location == "Iceland"|location == "Iran"|location == "Ireland"|location == "Israel"|location == "Italy"|location == "Jordan"| location == "Kuwait"| location == "Latvia"| location == "Lebanon"| location == "Switzerland"| location == "Liechtenstein"| location == "Lithuania"| location == "Luxembourg"| location == "Malta"| location == "Mauritius"| location == "Moldova"|location== "Netherlands"| location == "New Zealand"| location == "Macedonia" | location == "Panama"| location == "Poland"|location =="Portugal"| location == "San Marino"| location == "Saudi Arabia"| location == "Serbia"| location == "Slovakia"| location == "Slovenia"| location == "South Africa"|location == "Switzeralnd"| location == "Trinidad and Tobago"| location == "Turkey"|location == "Malaysia"|location == "Maldives"|location == "Montenegro"|location == "Monaco"| location == "Norway"| location == "Oman"| location == "Qatar"| location == "Romania"| location == "Seychelles"| location == "Singapore"| location == "Spain"|location == "Sweden" | location == "United Arab Emirates"| location == "United Kingdom"| location == "United States"| location == "Uruguay"),) # I originally subsetted the data with the countries that the paper had used to see the fit of growth to either exponential or power law growth, not realizing that the authors then chose to excluded some of these countries
+
+model <- covid_df_selected %>% subset(date == "2020-03-28") #Since I am not looking at the cases over a spance of time. I am instead looking for the most up to date information on the factors that I chose to analyze.
+
+new_model <- covid_df_selected %>% subset(c(location == "Albania"|location == "Armenia"| location == "Australia" | location == "Austria" |location == "Bahrain"| location == "Belgium"| location == "Bosnia and Herzegovina"| location == "Bulgaria"| location == "Canada"| location == "Chile"| location == "Costa Rica"| location == "Croatia"| location == "Cyprus"| location =="Czech Republic"| location== "Denmark"| location == "Dominican Republic"| location == "Ecuador"| location == "Estonia"| location == "Finland"| location == "France"|location == "Georgia"|location == "Germany"|location == "Greece"|location == "Hungary"|location == "Iran"|location == "Ireland"|location == "Israel"|location == "Italy"|location == "Jordan"| location == "Kuwait"| location == "Latvia"| location == "Lebanon"| location == "Switzerland"| location == "Liechtenstein"| location == "Lithuania"| location == "Mauritius"| location == "Moldova"|location== "Netherlands"| location == "New Zealand"| location == "Macedonia" | location == "Panama"| location == "Poland"|location =="Portugal"| location == "Saudi Arabia"| location == "Serbia"| location == "Slovakia"|location == "South Africa"|location == "Switzeralnd"| location == "Turkey"|location == "Malaysia"|location == "Norway"| location == "Oman"| location == "Qatar"| location == "Romania"| location == "Singapore"| location == "Spain"|location == "Sweden" | location == "United Arab Emirates"| location == "United Kingdom"| location == "United States"| location == "Uruguay"),) #here I subsetted the countries to fit those that were in the paper exactly.
+
+ new_model <- new_model %>% subset(date == "2020-03-28") #Same logic as before. For these countries I only want the most up to date information over the range of dates that we are considering.
+
+
+
+```
+
+
+## Statistical Tests
+
+```{r statistical analysis }
+
+fit <- model_fits_Rsquared %>%  select(country, Better_model) #Here I had sent Lee's tibble with classification in my global environment and then further subsetted it for the information that I needed which was the classification for each country.
+
+new_model <- merge(new_model,fit, by.x = "location", by.y = "country") # I merged my tibble with Lee's tibble to condense the data more and to be able to select for countries and their classification
+
+
+gdp <-new_model %>% select(location,gdp_per_capita,Better_model) # Here made a tibble that contained a country, it's gdp and classificiation.
+gdp_exp <- gdp %>% subset(Better_model == "Exponential") # I sorted the gdp tibble into solely exponential countries
+gdp_pl <- gdp %>% subset(Better_model == "Power law") # I created a table of only power law
+wilcox.test(gdp_exp$gdp_per_capita,gdp_pl$gdp_per_capita, alternative = "two.sided",conf.level = 0.95) #I used a wilcoxon rank sum test to see if there was a significant difference between the exponential and power law countries. 
+
+
+age <- new_model %>% select(location,Better_model,median_age) # repeated the method of the previous factor but with age.
+Exp_age <- age %>% subset( Better_model == "Exponential")
+Pl_age <- age %>% subset(Better_model == "Power law")
+wilcox.test(Exp_age$median_age,Pl_age$median_age,alternative = "two.sided", conf.level = 0.95, exact = FALSE)
+
+
+cardio <- new_model %>% select(location, Better_model, cardiovasc_death_rate) # repeated the method from GDP but with cardiovasucalr death rate
+exp_cardio <- cardio %>% subset(Better_model == "Exponential")
+Pl_cardio <- cardio %>% subset(Better_model == "Power law")
+wilcox.test(exp_cardio$cardiovasc_death_rate,Pl_cardio$cardiovasc_death_rate, alternative = "two.sided", conf.level = 0.95)
+
+```
+
+
+```{r GDP Distribution}
+
+gdp_prob_dist <- tibble(read_excel("GDP_distribution.xlsx")) # To graph the probability distribution I took the range of the GDPs of the countries and divided it into eight equal groups. Then in excel I determined the frequency of exponential countries that fell into each category and did the same for power law. This is the excel file I am reading in with my results.
+
+gdp_prob_dist %>% ggplot(aes(x= X,y= Proportion,fill= Model)) + 
+        geom_bar(stat="identity",position = "identity", alpha=.2)+ theme_minimal() +
+        scale_fill_manual(values=c("#E69F00", "#56B4E9"))+ # James gave me the code to graph the distribution as a stacked bar graph where you can visualize the overlap.
+        ggtitle(" Probability Distribution of GDP per Capita") + # I added titles to make the graphs look nice.
+        xlab("GDP per Capita")+
+        ylab("Probability")
+
+
+```
+
+
+```{r cardiovascular disease}
+cardio_df <- new_model %>% select(location, cardiovasc_death_rate,Better_model) # I used the same method as the GDP distribution section above.
+Cardio_distrb <- tibble(read_excel("Cardio_Distribution.xlsx"))
+
+Cardio_distrb %>% ggplot(aes(x= `Cardiovascular _death_rate` ,y= Proportion,fill= Model)) + 
+        geom_bar(stat="identity",position = "identity", alpha=.2)+ 
+        theme_minimal() +
+        scale_fill_manual(values=c("#E69F00", "#56B4E9"))+
+        ggtitle("Probability Distribution of Cardiovascular Death Rate")+
+        xlab("Cardiovascular Death Rate")+
+        ylab(" Probability")
+```
+
+```{r median age}
+
+median_age <- tibble(read_excel("Median_Age_distribution.xlsx")) # I used the same method as GDP distribution above.
+
+median_age %>% ggplot(aes(x = Median_Age,y= `Prob. Distribution`,fill= Model)) + 
+        geom_bar(stat="identity",position = "identity", alpha=.2)+ 
+        theme_minimal() +
+        scale_fill_manual(values=c("#E69F00", "#56B4E9")) +
+        ggtitle("Probability Distribution of Median Age")+
+        xlab("Median Age")+
+        ylab("Probability")
+
+```
+
+
