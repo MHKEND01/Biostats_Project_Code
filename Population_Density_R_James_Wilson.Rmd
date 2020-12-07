@@ -1,0 +1,340 @@
+---
+title: "Covid_Population_density"
+author: "James Wilson"
+date: "11/9/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Population Density Graph
+
+``` {r}
+#**This data uses just population, NOT population density**
+
+Population_Density<- read.csv("/Users/jameswilson/desktop/Bio290/Final_Project/Population_Density.csv")
+
+#Population_Density<- Population_Density %>% 
+  #rename(
+   # Density_km= density
+  #)
+
+
+#Exponential_2 <- Population_Density[ which(Population_Density$country== c('Australia', 'Canada', 'Croatia', 'Israel', 'New_Zealand', 'North_Macedonia', 'Oman', 'United_Arab_Emirates', 'United_States')), ]
+
+#Real Data
+Exponential <- Population_Density[Population_Density $countriesAndTerritories %in% c('Australia', 'Canada', 'Croatia', 'Israel', 'New_Zealand', 'North_Macedonia', 'Oman', 'United_Arab_Emirates', 'United_States', "Austria", "Dominican_Republic","Ecuador", "Ireland", "Lithuania", "Malaysia", "Portugal", "South Africa", "United_Kingdom", "Georgia", "Italy", "Bosnia_and_Herzegovina", "Chile", "Costa_Rica", "Czech_Republic", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Latvia", "Lebanon", "Panama", "Poland", "Romania", "Saudi_Arabia", "Serbia", "Singapore", "Spain", "Switzerland", "Trinidad_and_Tobago"), ]
+
+Power_Law <-Population_Density[Population_Density $countriesAndTerritories %in% c("Albania", "Armenia", "Belgium", "Cyprus", "Denmark", "Iran", "Jordan", "Mauritius", "Moldova", "Netherlands", "Norway", "Qatar", "Slovakia", "Sweden", "Turkey", "Uruguay", "Bahrain", "Bulgaria", "Kuwait"), ] 
+
+model_fits_Rsquared[ ,1]
+```
+
+
+Exponential: 'Australia', 'Canada', 'Croatia', 'Israel', 'New_Zealand', 'North_Macedonia', 'Oman', 'United_Arab_Emirates', 'United_States', "Austria", "Dominican_Republic","Ecuador", "Ireland", "Lithuania", "Malaysia", "Portugal", "South Africa", "United_Kingdom", "Georgia", "Italy", "Bosnia_and_Herzegovina", "Chile", "Costa_Rica", "Czech_Republic", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Latvia", "Lebanon", "Panama", "Poland", "Romania", "Saudi_Arabia", "Serbia", "Singapore", "Spain", "Switzerland", "Trinidad_and_Tobago"
+
+Powe_Law: "Albania", "Armenia", "Belgium", "Cyprus", "Denmark", "Iran", "Jordan", "Mauritius", "Moldova", "Netherlands", "Norway", "Qatar", "Slovakia", "Sweden", "Turkey", "Uruguay", "Bahrain", "Bulgaria", "Kuwait"
+
+
+```{r}
+library(tidyverse)
+
+Population_Density_2<- read.csv("/Users/jameswilson/desktop/Bio290/Final_Project/Population_Density_2.csv")
+
+Population_Density_2<- Population_Density_2 %>% 
+  rename(
+    Density_km= density
+  )
+
+Exponential_Density <- Population_Density_2[Population_Density_2 $country %in% c('Australia', 'Canada', 'Croatia', 'Israel', 'New_Zealand', 'North_Macedonia', 'Oman', 'United_Arab_Emirates', 'United_States', "Austria", "Dominican_Republic","Ecuador", "Ireland", "Lithuania", "Malaysia", "Portugal", "South Africa", "United_Kingdom", "Georgia", "Italy", "Bosnia_and_Herzegovina", "Chile", "Costa_Rica", "Czech_Republic", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Latvia", "Lebanon", "Panama", "Poland", "Romania", "Saudi_Arabia", "Serbia", "Singapore", "Spain", "Switzerland", "Trinidad_and_Tobago"), ]
+
+
+Power_Law_Density <-Population_Density_2[Population_Density_2 $country %in% c("Albania", "Armenia", "Belgium", "Cyprus", "Denmark", "Iran", "Jordan", "Mauritius", "Moldova", "Netherlands", "Norway", "Qatar", "Slovakia", "Sweden", "Turkey", "Uruguay", "Bahrain", "Bulgaria", "Kuwait"), ] 
+
+```
+
+
+```{r}
+#Exponential Data Distribution
+density_Ex <- Exponential_Density$Density_km
+range(density_Ex)
+#Range is 3.3-8239, I used a range from 2-655 (excluding singapore)
+breaks_Ex <- seq(3.3, 8239, by=1029)
+breaks_Ex
+density_Ex.cut <- cut(density_Ex, breaks_Ex, right=FALSE)
+density_Ex.freq = table(density_Ex.cut)
+density_Ex.freq
+
+#Exponential Actual Distibution
+subset(Exponential_Density, Density_km <= 81) #19
+subset(Exponential_Density, Density_km <= 163) #11 (30)
+subset(Exponential_Density, Density_km <= 245) #4 (34)
+subset(Exponential_Density, Density_km <= 327) #2 (36)
+subset(Exponential_Density, Density_km <= 409) #0 (36)
+subset(Exponential_Density, Density_km <= 491) #1 (37)
+subset(Exponential_Density, Density_km <= 573) #0 (37)
+subset(Exponential_Density, Density_km <= 655) #1 (38)
+subset(Exponential_Density, Density_km <= 9000) #1 (39)
+
+
+#Power Law Range 
+density_Pw <- Power_Law_Density$Density_km
+range(density_Pw)
+#Range is 16-2224, but exclusde Baharin, use the range 16-623
+
+#Power Law Distributions
+subset(Power_Law_Density, Density_km <= 78) #5 (5)
+subset(Power_Law_Density, Density_km <= 157) #8 (13)
+subset(Power_Law_Density, Density_km <= 236) #0 (13)
+subset(Power_Law_Density, Density_km <= 315) #2 (15)
+subset(Power_Law_Density, Density_km <= 394) #1 (16)
+subset(Power_Law_Density, Density_km <= 476) #1 (17)
+subset(Power_Law_Density, Density_km <= 552) #0 (17)
+subset(Power_Law_Density, Density_km <= 631) #1 (18)
+subset(Power_Law_Density, Density_km <= 3000) #1 (19)
+```
+
+
+
+```{r}
+#Stats for density 
+
+print (mean(Exponential_Density[["Density_km"]]))
+print (sd(Exponential_Density[["Density_km"]]))
+
+print (mean(Power_Law_Density[["Density_km"]]))
+print (sd(Power_Law_Density[["Density_km"]]))
+```
+
+```{r}
+ 
+#Function for overlayed histogram
+#ggplot(dat, aes(x=rating, fill=cond)) +
+    #geom_histogram(binwidth=.5, alpha=.5, position="identity")
+
+#Graph for Density
+Covid_Density_Distribution <- read.csv("/Users/jameswilson/desktop/Bio290/Final_Project/Covid_Density_Distribution.csv")
+
+ggplot(Covid_Density_Distribution,aes(x=Population_Density_km2,y=Probability_Distribution,fill=Condition)) + 
+        geom_bar(stat="identity",position = "identity", alpha=.2)+ theme_minimal() +scale_fill_manual(values=c("#E69F00", "#56B4E9")) + ggtitle("Probability Distribution of Population Density")
+
+
+        #Failed Attempts
+#ggplot(Covid_Density_Distribution, aes(x = Proportion, fill = Condition)) +   # Draw overlaying histogram
+  #geom_histogram(position = "identity", alpha = 0.2, bins = 9)
+
+#Failed Attempts
+#ggplot(data=Covid_Density_Distribution, aes(Covid_Density_Distribution$Frequency)) + 
+  #geom_histogram()
+
+#ggplot(Covid_Density_Distribution, aes(X, fill = Condition)) +
+ # geom_histogram(position = "Proportion", alpha = 0.2, bins = 9)
+
+ggplot(Covid_Density_Distribution,aes(x=X,y=Proportion,fill=Condition)) + 
+        geom_bar(stat="identity",position = "identity", alpha=.3)
+```
+
+```{r}
+#Statistics Test
+Ex_Density <- Exponential_Density[,3]
+print(Ex_Density)
+Pl_Density <- Power_Law_Density[,3]
+res <- t.test(Ex_Density, Pl_Density, var.equal = TRUE)
+print
+
+wilcox.test(Ex_Density, Pl_Density, alternative = "two.sided")
+```
+
+res[["p.value"]]
+[1] 0.8690356
+
+28
+56
+84
+112
+140
+168
+196
+224 
+
+
+49
+98
+147
+196
+245
+294
+343
+392
+```{r}
+#Exponential Population Density Without Outliars
+wo_Out_Density_Ex <- Exponential_Density
+outlierKD(wo_Out_Density_Ex, Density_km)
+wo_Out_Density_Ex$Density_km
+#Range is from 3.3-234
+
+#Exponential Density Actual Frequency Distribution
+subset(wo_Out_Density_Ex, Density_km <= 28) #7 
+subset(wo_Out_Density_Ex, Density_km <= 56) #11 (4)
+subset(wo_Out_Density_Ex, Density_km <= 84) #19 (8)
+subset(wo_Out_Density_Ex, Density_km <= 112) #26 (7)
+subset(wo_Out_Density_Ex, Density_km <= 140) #30 (4)
+subset(wo_Out_Density_Ex, Density_km <= 168) #30 (0)
+subset(wo_Out_Density_Ex, Density_km <= 196) #30 (0)
+subset(wo_Out_Density_Ex, Density_km <= 224) #33 (3)
+subset(wo_Out_Density_Ex, Density_km <= 5000) #34 (1)
+
+#Power Population Density Without Outliars
+wo_Out_Density_Pw <- Power_Law_Density
+outlierKD(wo_Out_Density_Pw, Density_km)
+wo_Out_Density_Pw$Density_km
+#Range is from 16-409
+
+#Power Law Density Frequency Distribution
+subset(wo_Out_Density_Pw, Density_km <= 49) #3 
+subset(wo_Out_Density_Pw, Density_km <= 98) #5 (2)
+subset(wo_Out_Density_Pw, Density_km <= 147) #13 (8)
+subset(wo_Out_Density_Pw, Density_km <= 196) #13 (0)
+subset(wo_Out_Density_Pw, Density_km <= 245) #14 (1)
+subset(wo_Out_Density_Pw, Density_km <= 294) #15 (1)
+subset(wo_Out_Density_Pw, Density_km <= 343) #15 (0)
+subset(wo_Out_Density_Pw, Density_km <= 392) #16 (1)
+subset(wo_Out_Density_Pw, Density_km <= 10000) #17 (1)
+
+#Graph For Data Without Outliars
+
+Wo_Out_Density_Distribution <- read.csv("/Users/jameswilson/desktop/Bio290/Final_Project/Covid_Density_Outliars.csv")
+
+ggplot(Wo_Out_Density_Distribution,aes(x=Population_Density_km2,y=Probability_Distribution,fill=Condition)) + 
+        geom_bar(stat="identity",position = "identity", alpha=.2)+ theme_minimal() +scale_fill_manual(values=c("#E69F00", "#56B4E9")) + ggtitle("Probability Distribution of Population Density")
+
+#Statistics for Density  
+O_Ex_Density <- wo_Out_Density_Ex[,3]
+print(Ex_Area)
+O_Pl_Density <- wo_Out_Density_Pw[,3]
+
+wilcox.test(O_Ex_Density, O_Pl_Density, alternative = "two.sided")
+
+```
+68870
+137740
+206610
+275480
+344350
+413220
+482090
+550960 
+```{r}
+#Area Data and Graph
+
+#Exponential Data Distribution
+Area_Ex <- Exponential_Density$area
+range(Area_Ex)
+#range is from 710-9,984,670
+wo_Outliar_Exponential <- Exponential_Density
+
+
+source("http://goo.gl/UUyEzD")
+outlierKD(wo_Outliar_Exponential, area)
+
+
+#Exponential Data Distribution
+Area_Ex <- wo_Outliar_Exponential$area
+range(Area_Ex)
+#range is from 710- 551,695
+
+#Exponential Actual Distibution
+subset(wo_Outliar_Exponential, area <= 68870) #12
+subset(wo_Outliar_Exponential, area <= 137740) #22 (10)
+subset(wo_Outliar_Exponential, area <= 206610) #22 (0)
+subset(wo_Outliar_Exponential, area <= 275480) #25 (3)
+subset(wo_Outliar_Exponential, area <= 344350) #31 (6)
+subset(wo_Outliar_Exponential, area <= 413220) #32 (1)
+subset(wo_Outliar_Exponential, area <= 482090) #32 (0)
+subset(wo_Outliar_Exponential, area <= 550960) #33 (1)
+subset(wo_Outliar_Exponential, area >= 550960) #34 (1)
+```
+
+40378
+80756
+121134
+161512
+201890
+242268
+282646
+323024
+```{r}
+#Power Law Area Data Distribution
+wo_Outliar_Power <- Power_Law_Density
+source("http://goo.gl/UUyEzD")
+outlierKD(wo_Outliar_Power, area)
+
+#Range of Data
+Area_Pw <- wo_Outliar_Power$area
+range(Area_Pw)
+Area_Pw
+  #range is from 765 - 323,802
+
+#Power Law Actual Frequency Distribution
+subset(wo_Outliar_Power, area <= 40378) #9 
+subset(wo_Outliar_Power, area <= 80756) #12 (3)
+subset(wo_Outliar_Power, area <= 121134) #14 (2) 
+subset(wo_Outliar_Power, area <= 161512) #14 (0) 
+subset(wo_Outliar_Power, area <= 201890) #15 (1)
+subset(wo_Outliar_Power, area <= 242268) #15 (0) 
+subset(wo_Outliar_Power, area <= 282646) #15 (0)
+subset(wo_Outliar_Power, area <= 323024) #15 (0) 
+subset(wo_Outliar_Power, area >= 323024) #16 (1)
+
+#Graph
+Covid_Area_Distribution <- read.csv("/Users/jameswilson/desktop/Bio290/Final_Project/Area_Distribution.csv")
+
+ggplot(Covid_Area_Distribution,aes(x=Area_in_km2,y=Probability_Distribution,fill=Condition)) + 
+        geom_bar(stat="identity",position = "identity", alpha=.2)+ theme_minimal() +scale_fill_manual(values=c("#E69F00", "#56B4E9")) + ggtitle("Probability Distribution of Area in km^2")
+
+#Mean
+mean(wo_Outliar_Exponential[["area"]])
+```
+
+
+
+
+```{r}
+#Statistics for Area 
+Ex_Area <- wo_Outliar_Exponential[,6]
+print(Ex_Area)
+Pl_Area <- wo_Outliar_Power[,6]
+
+wilcox.test(Ex_Area, Pl_Area, alternative = "two.sided")
+
+#With Outliars
+
+```
+
+``` {r}
+#Fixes to Graphs
+
+#Density need to Fix Exponential
+subset(wo_Out_Density_Ex, Density_km <= 49) #11 
+subset(wo_Out_Density_Ex, Density_km <= 98) #21 (10)
+subset(wo_Out_Density_Ex, Density_km <= 147) #30 (9)
+subset(wo_Out_Density_Ex, Density_km <= 196) #30 (0)
+subset(wo_Out_Density_Ex, Density_km <= 245) #34 (4)
+subset(wo_Out_Density_Ex, Density_km <= 294) #34 (0)
+subset(wo_Out_Density_Ex, Density_km <= 343) #34 (0)
+subset(wo_Out_Density_Ex, Density_km <= 392) #34 (0)
+subset(wo_Out_Density_Ex, Density_km <= 10000) #34 (0)
+
+#For area need to Fix Power Law
+subset(wo_Outliar_Power, area <= 68870) #12
+subset(wo_Outliar_Power, area <= 137740) #14 (2)
+subset(wo_Outliar_Power, area <= 206610) #15 (1)
+subset(wo_Outliar_Power, area <= 275480) #15 (0)
+subset(wo_Outliar_Power, area <= 344350) #16 (1)
+subset(wo_Outliar_Power, area <= 413220) #16 (0)
+subset(wo_Outliar_Power, area <= 482090) #16 (0)
+subset(wo_Outliar_Power, area <= 550960) #16 (0)
+subset(wo_Outliar_Power, area >= 550960) #16 (0)
+```
